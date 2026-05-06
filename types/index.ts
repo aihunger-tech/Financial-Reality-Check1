@@ -1,17 +1,13 @@
 export type FinancialTier = 'SURVIVING' | 'STABLE' | 'COMFORTABLE' | 'RICH';
 
 export type FinancialGoal = 
-  | 'RETIRE_EARLY' 
-  | 'BUY_HOUSE' 
-  | 'DEBT_FREE' 
-  | 'GENERATIONAL_WEALTH' 
-  | 'JUST_SURVIVE';
+  | 'RETIRE_EARLY' | 'BUY_HOUSE' | 'DEBT_FREE' | 'GENERATIONAL_WEALTH' | 'JUST_SURVIVE';
 
 export interface FinancialData {
-  firstName: string; // Optional
-  lastName: string;   // Optional
-  email: string;     // Mandatory
-  country: string;   // Added
+  firstName: string;
+  lastName: string;
+  email: string;
+  country: string;
   age: number;
   income: number;
   savings: number;
@@ -29,12 +25,16 @@ export interface TierContent {
   color: string;
   bg: string;
   shake: boolean;
+  offerTitle: string; // Tier-specific offer
 }
 
 export interface CalculationResult {
   score: number;
   tier: FinancialTier;
+  persona: string;    // New: "The Stealth Saver", etc.
+  gap: number;        // New: Points to next tier
   weakness: string;
   freedomYears: number;
   percentile: number;
+  countryRank: number; // New: Percentile within country
 }
