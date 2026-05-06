@@ -37,10 +37,30 @@ export default function FinancialRealityCheck() {
 
   const handleStart = () => setAppState("form");
 
+  // --- MODIFIED: This now saves data to the database ---
   const handleComplete = async () => {
     setAppState("calculating");
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    
+    // 1. Calculate the result immediately
     const result = calculateFinancialReality(formData);
+    
+    try {
+      // 2. Send the data to our API route
+      await fetch('/api/save-result', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userData: formData, 
+          result: result 
+        }),
+      });
+    } catch (e) {
+      console.error("Lead capture failed, but we will still show the result:", e);
+    }
+
+    // 3. Psychological tension delay (1.5 seconds)
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    
     setFinalResult(result);
     setAppState("result");
 
@@ -128,7 +148,6 @@ export default function FinancialRealityCheck() {
                     type={stepConfig.type}
                     placeholder="Enter value..."
                     isOptional={stepConfig.optional}
-                    // Fix: Casting the key to keyof FinancialData ensures TS allows indexing
                     value={formData[stepConfig.id] as string | number}
                     onChange={(e) => {
                       const val = e.target.value;
