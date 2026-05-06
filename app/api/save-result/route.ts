@@ -2,19 +2,25 @@ import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { FinancialData, CalculationResult } from '@/types';
 
-// Initialize the Supabase client using the environment variables
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 export async function POST(req: Request) {
   try {
-    // 1. Extract the data from the request body
+    // 1. Initialize Supabase INSIDE the function
+    // This prevents the "supabaseKey is required" error during the build process
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      console.error("Missing Supabase Environment Variables");
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // 2. Extract the data from the request body
     const body = await req.json();
     const { userData, result }: { userData: FinancialData, result: CalculationResult } = body;
 
-    // 2. Insert the data into the 'leads' table in Supabase
+    // 3. Insert the data into the 'leads' table
     const { data, error } = await supabase
       .from('leads')
       .upsert({ 
@@ -33,13 +39,14 @@ export async function POST(req: Request) {
       });
 
     if (error) {
-      console.error("Supabase Error:", error);
+      console.error("Supabase Database Error:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ success: true, data }, { status: 200 });
-  } catch (error: any) {
-    console.error("Server Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    console.error("API Route Error:", errorMessage);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
