@@ -8,7 +8,11 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   isOptional?: boolean;
 }
 
-export const Input = ({ label, isOptional, ...props }: InputProps) => {
+export const Input = ({ label, isOptional, value, ...props }: InputProps) => {
+  // UX FIX: If value is 0, we show an empty string so the placeholder is visible 
+  // and the user doesn't have to delete a "0" before typing.
+  const displayValue = value === 0 ? "" : value;
+
   return (
     <div className="w-full mb-8">
       <label className="block text-gray-400 text-sm font-medium mb-2 ml-1">
@@ -21,6 +25,7 @@ export const Input = ({ label, isOptional, ...props }: InputProps) => {
       >
         <input
           {...props}
+          value={displayValue}
           className="w-full bg-transparent text-white text-4xl md:text-5xl font-black border-b-4 border-gray-800 focus:border-white outline-none transition-all duration-300 py-2 placeholder:text-gray-800"
         />
         <motion.div 

@@ -129,9 +129,14 @@ export default function FinancialRealityCheck() {
                   <Input 
                     label={stepConfig.label} 
                     type={stepConfig.type} 
+                    placeholder="Enter value..."
                     isOptional={stepConfig.optional} 
                     value={formData[stepConfig.id as keyof FinancialData] as any} 
-                    onChange={(e) => updateField(stepConfig.id as keyof FinancialData, stepConfig.type === "number" ? Number(e.target.value) : e.target.value)} 
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      // UX FIX: Convert empty strings back to 0 for numbers so state remains clean
+                      updateField(stepConfig.id as keyof FinancialData, stepConfig.type === "number" ? (val === "" ? 0 : Number(val)) : val);
+                    }} 
                   />
                 )}
               </div>
