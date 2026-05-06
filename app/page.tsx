@@ -28,6 +28,8 @@ import { GoalOption } from "@/components/ui/GoalOptions";
 
 export default function FinancialRealityCheck() {
   const [appState, setAppState] = useState<"landing" | "form" | "calculating" | "result">("landing");
+  const [isSubmitting, setIsSubmitting] = useState(false); // This tracks the "Submit" process
+  
   const { 
     formData, updateField, currentStep, nextStep, prevStep, 
     isComplete, setIsComplete, error, progress 
@@ -37,16 +39,21 @@ export default function FinancialRealityCheck() {
 
   const handleStart = () => setAppState("form");
 
-  // --- MODIFIED: This now saves data to the database ---
+  /**
+   * THIS IS THE TRIGGER
+   * This function is called when the user clicks "Reveal My Reality" at Step 10.
+   * It acts as the "Submit" button for the entire app.
+   */
   const handleComplete = async () => {
-    setAppState("calculating");
+    setIsSubmitting(true); // Start loading state on the button
     
-    // 1. Calculate the result immediately
+    // 1. Calculate the result locally first
     const result = calculateFinancialReality(formData);
     
     try {
-      // 2. Send the data to our API route
-      await fetch('/api/save-result', {
+      // 2. THE SUBMIT ACTION: Send data to Supabase via our API route
+      // We 'await' this to ensure the lead is captured before moving forward
+      const response = await fetch('/api/save-result', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -54,11 +61,19 @@ export default function FinancialRealityCheck() {
           result: result 
         }),
       });
+
+      if (!response.ok) {
+        console.error("Lead capture failed on server");
+      }
     } catch (e) {
-      console.error("Lead capture failed, but we will still show the result:", e);
+      console.error("Network error during lead submission:", e);
     }
 
-    // 3. Psychological tension delay (1.5 seconds)
+    // 3. transition to the "Calculating" screen (The psychological hook)
+    setAppState("calculating");
+    setIsSubmitting(false); // Stop loading state
+    
+    // Fake analysis delay for tension
     await new Promise((resolve) => setTimeout(resolve, 1500));
     
     setFinalResult(result);
@@ -173,11 +188,13 @@ export default function FinancialRealityCheck() {
                   </Button>
                 )}
                 <Button 
+                  // Logic: If it's the last step, trigger handleComplete (the Submit). Otherwise, go to next step.
                   onClick={currentStep === FORM_STEPS.length - 1 ? handleComplete : nextStep} 
+                  isLoading={isSubmitting} 
                   className="flex-1"
                 >
                   {currentStep === FORM_STEPS.length - 1 ? "Reveal My Reality" : "Next"} 
-                  <ArrowRight size={20} />
+                  {!isSubmitting && <ArrowRight size={20} />}
                 </Button>
               </div>
             </motion.div>
