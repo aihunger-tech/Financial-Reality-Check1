@@ -23,7 +23,8 @@ import { GoalOption } from "@/components/ui/GoalOptions";
 
 // --- CONFIG ---
 const LINKS = {
-  APP: "https://your-finance-app.com", 
+  // UPDATED: Pointing to your actual Vault App Welcome page
+  APP: "https://control-your-finances1-qrw5fdnd5-aihunger-techs-projects.vercel.app/welcome", 
   MARKETS: "#", 
   COURSE: "https://your-course.com",
   CONSULT: "https://calendly.com/your-link",
@@ -134,7 +135,6 @@ export default function FinancialRealityCheck() {
                     value={formData[stepConfig.id as keyof FinancialData] as any} 
                     onChange={(e) => {
                       const val = e.target.value;
-                      // UX FIX: Convert empty strings back to 0 for numbers so state remains clean
                       updateField(stepConfig.id as keyof FinancialData, stepConfig.type === "number" ? (val === "" ? 0 : Number(val)) : val);
                     }} 
                   />
@@ -208,12 +208,14 @@ export default function FinancialRealityCheck() {
           <div className="mt-20">
             <h4 className="text-center text-3xl font-black mb-10 tracking-tight">The Recovery Plan</h4>
             <div className="space-y-6">
+              {/* UPDATED: High-conversion Bridge Card */}
               <MonetizationCard 
-                icon={<Wallet className="text-blue-400" />} 
-                title="Control Your Finances" 
-                desc="The lightweight app to manage every cent."
+                icon={<Wallet className="text-white" />} 
+                title="Enter The Vault" 
+                desc="You've faced your reality. Now, build your financial fortress. Privacy-first wealth tracking for the elite."
                 primaryLink={LINKS.APP}
-                primaryLabel="Launch App"
+                primaryLabel="Launch Vault"
+                isHighlighted={true}
               />
               <MonetizationCard 
                 icon={<TrendingUp className="text-emerald-400" />} 
@@ -257,20 +259,20 @@ function StatCard({ label, value }: { label: string, value: string }) {
   );
 }
 
-function MonetizationCard({ icon, title, desc, primaryLink, primaryLabel, secondaryLabel, onSecondaryClick }: any) {
+function MonetizationCard({ icon, title, desc, primaryLink, primaryLabel, secondaryLabel, onSecondaryClick, isHighlighted }: any) {
   return (
-    <div className="p-6 bg-gray-900 border border-white/5 rounded-3xl group hover:border-white/20 transition-all">
+    <div className={`p-6 rounded-3xl group transition-all ${isHighlighted ? 'bg-white text-black border-white shadow-[0_0_30px_rgba(255,255,255,0.2)]' : 'bg-gray-900 border border-white/5 hover:border-white/20'}`}>
       <div className="flex items-start justify-between mb-6">
         <div className="flex items-center gap-4">
-          <div className="p-4 bg-black rounded-2xl border border-white/10">{icon}</div>
-          <div>
-            <p className="font-bold text-xl">{title}</p>
-            <p className="text-gray-500 text-sm">{desc}</p>
+          <div className={`p-4 rounded-2xl border ${isHighlighted ? 'bg-black text-white border-black' : 'bg-black text-white border-white/10'}`}>{icon}</div>
+          <div className="text-left">
+            <p className={`font-bold text-xl ${isHighlighted ? 'text-black' : 'text-white'}`}>{title}</p>
+            <p className={`${isHighlighted ? 'text-gray-600' : 'text-gray-500'} text-sm`}>{desc}</p>
           </div>
         </div>
       </div>
       <div className="flex gap-3">
-        <a href={primaryLink} target="_blank" className="flex-1 py-3 bg-white text-black font-bold rounded-xl text-center text-sm flex items-center justify-center gap-2 hover:bg-gray-200 transition-colors">
+        <a href={primaryLink} target="_blank" className={`flex-1 py-3 font-bold rounded-xl text-center text-sm flex items-center justify-center gap-2 transition-colors ${isHighlighted ? 'bg-black text-white hover:bg-zinc-800' : 'bg-white text-black hover:bg-gray-200'}`}>
           {primaryLabel} <ExternalLink size={14} />
         </a>
         {onSecondaryClick && (
@@ -278,7 +280,7 @@ function MonetizationCard({ icon, title, desc, primaryLink, primaryLabel, second
             {secondaryLabel}
           </Button>
         )}
-        <a href={LINKS.CONSULT} target="_blank" className="p-3 bg-gray-800 text-white rounded-xl hover:bg-gray-700 transition-colors">
+        <a href={LINKS.CONSULT} target="_blank" className={`p-3 rounded-xl transition-colors ${isHighlighted ? 'bg-zinc-300 text-black hover:bg-zinc-400' : 'bg-gray-800 text-white hover:bg-gray-700'}`}>
           <Calendar size={18} />
         </a>
       </div>

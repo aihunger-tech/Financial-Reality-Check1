@@ -1,24 +1,54 @@
 import { FinancialData, FinancialTier, CalculationResult } from "@/types";
 
+// 2026 Economic Weights: Adjusts the "strength" of money based on local Cost of Living (COL)
+// Factor > 1.0 means the money goes further (Low COL), increasing the score impact.
+// Factor < 1.0 means the money is tighter (High COL), requiring more to achieve the same tier.
+const COUNTRY_WEIGHTS: Record<string, number> = {
+  "USA": 1.0,
+  "UK": 0.95,
+  "Canada": 0.98,
+  "Australia": 0.97,
+  "Switzerland": 0.85, // Extremely high COL
+  "Singapore": 0.88,
+  "Germany": 0.92,
+  "India": 1.6,       // High PPP impact
+  "Brazil": 1.5,
+  "Vietnam": 1.7,
+  "Indonesia": 1.65,
+  "Mexico": 1.4,
+  "Philippines": 1.55,
+  "Default": 1.2,     // Average global weight
+};
+
 export const calculateFinancialReality = (data: FinancialData): CalculationResult => {
   let score = 50; // Base starting point
+  
+  // Resolve country weight
+  const weight = COUNTRY_WEIGHTS[data.country.toUpperCase()] || COUNTRY_WEIGHTS["Default"];
 
-  // 1. SAVINGS RATE IMPACT
+  // 1. SAVINGS RATE IMPACT (Weighted)
+  // We multiply the savings rate by the country weight to reflect relative strength
   const savingsRate = (data.savings / data.income) * 100;
-  if (savingsRate > 30) score += 25;
-  else if (savingsRate > 15) score += 15;
-  else if (savingsRate > 0) score += 5;
-  else if (savingsRate < 0) score -= 20;
+  const weightedSavingsRate = savingsRate * weight;
 
-  // 2. DEBT RATIO IMPACT
+  if (weightedSavingsRate > 30) score += 25;
+  else if (weightedSavingsRate > 15) score += 15;
+  else if (weightedSavingsRate > 0) score += 5;
+  else if (savingsRate < 0) score -= 20; // Negative savings (burning cash) is a penalty regardless of country
+
+  // 2. DEBT RATIO IMPACT (Weighted)
   const annualIncome = data.income * 12;
   const debtRatio = data.debt / annualIncome;
-  if (data.debt === 0) score += 15;
-  else if (debtRatio > 3) score -= 25;
-  else if (debtRatio > 1) score -= 15;
-  else if (debtRatio < 0.5) score += 5;
+  
+  // In high COL countries (weight < 1), debt is slightly more "tolerable" due to higher wages
+  const weightedDebtRatio = debtRatio * weight;
 
-  // 3. SPENDING VS INCOME
+  if (data.debt === 0) score += 15;
+  else if (weightedDebtRatio > 3) score -= 25;
+  else if (weightedDebtRatio > 1) score -= 15;
+  else if (weightedDebtRatio < 0.5) score += 5;
+
+  // 3. SPENDING VS INCOME (Relative)
   if (data.spending >= data.income) {
     score -= 30;
   } else if (data.spending < data.income * 0.5) {
@@ -29,7 +59,7 @@ export const calculateFinancialReality = (data: FinancialData): CalculationResul
   if (data.age > 35 && data.savings < 5000) score -= 20;
   if (data.age < 25 && data.savings > 10000) score += 10;
 
-  // 5. RANDOMNESS (Viral Variable)
+  // 5. RANDOMNESS (Viral Variable - preserves "uniqueness" of results)
   const randomness = (Math.random() * 10) - 5;
   const finalScore = Math.min(100, Math.max(0, Math.round(score + randomness)));
 
@@ -39,7 +69,7 @@ export const calculateFinancialReality = (data: FinancialData): CalculationResul
   else if (finalScore >= 51) tier = 'COMFORTABLE';
   else if (finalScore >= 26) tier = 'STABLE';
 
-  // PERSONA LOGIC (The "Label" users share)
+  // PERSONA LOGIC
   let persona = "The Average Joe";
   if (data.income > 8000 && data.spending > data.income * 0.8) {
     persona = "The High-Earning Broke Person";
@@ -53,7 +83,7 @@ export const calculateFinancialReality = (data: FinancialData): CalculationResul
     persona = "The Financial Firefighter";
   }
 
-  // GAP ANALYSIS (Points to next tier)
+  // GAP ANALYSIS
   let gap = 0;
   if (tier === 'SURVIVING') gap = 26 - finalScore;
   else if (tier === 'STABLE') gap = 51 - finalScore;
@@ -80,7 +110,6 @@ export const calculateFinancialReality = (data: FinancialData): CalculationResul
     freedomYears = 99; 
   }
 
-  // RETURN FULL OBJECT (Matches CalculationResult interface)
   return {
     score: finalScore,
     tier: tier,
@@ -89,6 +118,6 @@ export const calculateFinancialReality = (data: FinancialData): CalculationResul
     weakness: weakness,
     freedomYears: freedomYears > 100 ? 100 : (freedomYears < 0 ? 0 : freedomYears),
     percentile: 100 - finalScore,
-    countryRank: Math.floor(Math.random() * 20) + 75, // Simulated country rank
+    countryRank: Math.floor(Math.random() * 20) + 75, 
   };
 };
