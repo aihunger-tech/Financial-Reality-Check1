@@ -23,8 +23,8 @@ import { GoalOption } from "@/components/ui/GoalOptions";
 
 // --- CONFIG ---
 const LINKS = {
-  // UPDATED: Pointing to your actual Vault App Welcome page
-  APP: "https://control-your-finances1-qrw5fdnd5-aihunger-techs-projects.vercel.app/welcome", 
+  // THE BRIDGE: Redirects to your Welcome page
+  APP: "https://cyfinances.vercel.app/welcome", 
   MARKETS: "#", 
   COURSE: "https://your-course.com",
   CONSULT: "https://calendly.com/your-link",
@@ -208,13 +208,12 @@ export default function FinancialRealityCheck() {
           <div className="mt-20">
             <h4 className="text-center text-3xl font-black mb-10 tracking-tight">The Recovery Plan</h4>
             <div className="space-y-6">
-              {/* UPDATED: High-conversion Bridge Card */}
               <MonetizationCard 
                 icon={<Wallet className="text-white" />} 
-                title="Enter The Vault" 
+                title="Control Your Finances" 
                 desc="You've faced your reality. Now, build your financial fortress. Privacy-first wealth tracking for the elite."
                 primaryLink={LINKS.APP}
-                primaryLabel="Launch Vault"
+                primaryLabel="Launch App"
                 isHighlighted={true}
               />
               <MonetizationCard 
@@ -245,9 +244,10 @@ export default function FinancialRealityCheck() {
         </AnimatePresence>
       </div>
     );
-  }
 
-  return null;
+}
+
+return null;
 }
 
 function StatCard({ label, value }: { label: string, value: string }) {
