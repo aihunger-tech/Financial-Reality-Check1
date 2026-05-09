@@ -198,7 +198,6 @@ export default function FinancialRealityCheck() {
             <h3 className={`text-sm font-black uppercase tracking-[0.3em] mb-4 ${content.color}`}>THE VERDICT</h3>
             <h1 className="text-5xl md:text-7xl font-black mb-2 leading-none tracking-tighter">{content.title}</h1>
             
-            {/* PERSONA SECTION - The psychological hook */}
             <div className="mb-8">
               <p className="text-gray-400 text-xs uppercase font-bold tracking-widest mb-1">Your Financial Identity</p>
               <p className="text-2xl font-black text-white italic">"{finalResult.persona}"</p>
@@ -214,7 +213,6 @@ export default function FinancialRealityCheck() {
 
             <p className="text-xl font-bold mb-6 px-4 leading-relaxed">{content.primary}</p>
             
-            {/* DIAGNOSIS SECTION - The Pain Point */}
             <div className="bg-black/60 p-6 rounded-2xl mb-8 border border-white/10 w-full text-left">
               <div className="flex items-center gap-2 text-red-400 mb-2">
                 <AlertCircle size={18} />
@@ -227,7 +225,6 @@ export default function FinancialRealityCheck() {
               </div>
             </div>
 
-            {/* GAP SECTION - The Bridge */}
             {finalResult.gap > 0 && (
               <div className="bg-blue-500/10 p-4 rounded-2xl mb-8 border border-blue-500/20 w-full flex items-center justify-center gap-3">
                 <Target size={20} className="text-blue-400" />
@@ -264,6 +261,7 @@ export default function FinancialRealityCheck() {
                 primaryLink={LINKS.APP}
                 primaryLabel="Fix My Budget Now"
                 isHighlighted={true}
+                result={finalResult} // Passing the result for dynamic linking
               />
               <MonetizationCard 
                 icon={<TrendingUp className="text-emerald-400" />} 
@@ -273,6 +271,7 @@ export default function FinancialRealityCheck() {
                 primaryLabel="Enter Market Hub"
                 onSecondaryClick={() => setShowMarket(true)}
                 secondaryLabel="Market Pulse"
+                result={finalResult}
               />
               <MonetizationCard 
                 icon={<ShieldCheck className="text-purple-400" />} 
@@ -280,8 +279,9 @@ export default function FinancialRealityCheck() {
                 desc="Advanced strategies to move you from your current tier to the RICH tier."
                 primaryLink={LINKS.COURSE}
                 primaryLabel="Get Blueprints"
+                result={finalResult}
               />
-            </div}
+            </div>
           </div>
         </div>
 
@@ -297,14 +297,28 @@ export default function FinancialRealityCheck() {
 
 function StatCard({ label, value }: { label: string, value: string }) {
   return (
-    <div className="bg-gray-900 p-6 rounded-3xl border border-white/5">
+    <div className="bg-gray-900 p-6 rounded-3 own-3 border border-white/5">
       <p className="text-gray-500 text-xs uppercase font-bold mb-1">{label}</p>
       <p className="text-2xl font-black">{value}</p>
     </div>
   );
 }
 
-function MonetizationCard({ icon, title, desc, primaryLink, primaryLabel, secondaryLabel, onSecondaryClick, isHighlighted }: any) {
+function MonetizationCard({ icon, title, desc, primaryLink, primaryLabel, secondaryLabel, onSecondaryClick, isHighlighted, result }: any) {
+  
+  // PERSONALIZATION BRIDGE: Generates the dynamic link
+  const generatePersonalizedLink = (url: string) => {
+    if (!result) return url;
+    const params = new URLSearchParams({
+      persona: result.persona,
+      tier: result.tier,
+      weakness: result.weakness,
+      score: result.score.toString(),
+      gap: result.gap.toString(),
+    });
+    return `${url}${url.includes('?') ? '&' : '?'} ${params.toString()}`;
+  };
+
   return (
     <div className={`p-6 rounded-3xl group transition-all ${isHighlighted ? 'bg-white text-black border-white shadow-[0_0_30px_rgba(255,255,255,0.2)]' : 'bg-gray-900 border border-white/5 hover:border-white/20'}`}>
       <div className="flex items-start justify-between mb-6">
@@ -317,7 +331,11 @@ function MonetizationCard({ icon, title, desc, primaryLink, primaryLabel, second
         </div>
       </div>
       <div className="flex gap-3">
-        <a href={primaryLink} target="_blank" className={`flex-1 py-3 font-bold rounded-xl text-center text-sm flex items-center justify-center gap-2 transition-colors ${isHighlighted ? 'bg-black text-white hover:bg-zinc-800' : 'bg-white text-black hover:bg-gray-200'}`}>
+        <a 
+          href={generatePersonalizedLink(primaryLink)} 
+          target="_blank" 
+          className={`flex-1 py-3 font-bold rounded-xl text-center text-sm flex items-center justify-center gap-2 transition-colors ${isHighlighted ? 'bg-black text-white hover:bg-zinc-800' : 'bg-white text-black hover:bg-gray-200'}`}
+        >
           {primaryLabel} <ExternalLink size={14} />
         </a>
         {onSecondaryClick && (
