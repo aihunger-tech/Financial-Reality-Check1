@@ -33,9 +33,12 @@ export const useFinancialData = () => {
 
   // 3. Navigation Logic
   const nextStep = () => {
-    // Validation for Mandatory Email when on the email step (Assuming step 2)
-    // We check if we are at the email step and if it's empty/invalid
-    if (currentStep === 2 && (!formData.email || !formData.email.includes("@"))) {
+    // Validation for Mandatory Fields
+    if (currentStep === 0 && !formData.firstName) {
+      setError("Please enter your first name to continue.");
+      return;
+    }
+    if (currentStep === 1 && (!formData.email || !formData.email.includes("@"))) {
       setError("Please enter a valid email to continue.");
       return;
     }

@@ -39,12 +39,14 @@ export default function FinancialRealityCheck() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showMarket, setShowMarket] = useState(false);
   const [humbleCount, setHumbleCount] = useState(12403);
+  const [isMounted, setIsMounted] = useState(false);
   
   const { formData, updateField, currentStep, nextStep, prevStep, error, progress } = useFinancialData();
   const { currency } = useFinancialStore(); 
   const [finalResult, setFinalResult] = useState<CalculationResult | null>(null);
 
   useEffect(() => {
+    setIsMounted(true);
     const interval = setInterval(() => setHumbleCount(prev => prev + Math.floor(Math.random() * 3)), 3000);
     return () => clearInterval(interval);
   }, []);
@@ -91,7 +93,7 @@ export default function FinancialRealityCheck() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
             </span>
-            {humbleCount.toLocaleString()} people humbled today
+            {isMounted ? humbleCount.toLocaleString() : "12,403"} people humbled today
           </div>
           <h1 className="text-6xl md:text-9xl font-black tracking-tighter mb-8 leading-none italic">
             Are you actually <br/><span className="text-gray-500">doing well?</span>
@@ -135,6 +137,29 @@ export default function FinancialRealityCheck() {
                       <GoalOption key={goal.value} label={goal.label} isSelected={formData.goal === goal.value} onClick={() => updateField("goal", goal.value)} />
                     ))}
                   </div>
+                ) : stepConfig.type === "multi" ? (
+                  <div className="space-y-6">
+                    {(stepConfig as any).fields.map((field: any) => (
+                      <div key={field.id} className="relative">
+                        <Input 
+                          label={field.label} 
+                          type={field.type} 
+                          placeholder="Enter value..."
+                          isOptional={field.optional} 
+                          value={formData[field.id as keyof FinancialData] as any} 
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            updateField(field.id as keyof FinancialData, field.type === "number" ? (val === "" ? 0 : Number(val)) : val);
+                          }} 
+                        />
+                        {field.type === "number" && (
+                          <div className="absolute right-4 top-[50%] -translate-y-1/2 text-gray-500 font-bold">
+                            {currency.symbol}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 ) : (
                   <div className="relative">
                     <Input 
@@ -148,7 +173,7 @@ export default function FinancialRealityCheck() {
                         updateField(stepConfig.id as keyof FinancialData, stepConfig.type === "number" ? (val === "" ? 0 : Number(val)) : val);
                       }} 
                     />
-                    {stepConfig.type === "number" && (
+                    {stepConfig.type === "number" && stepConfig.id !== "age" && (
                       <div className="absolute right-4 top-[50%] -translate-y-1/2 text-gray-500 font-bold">
                         {currency.symbol}
                       </div>

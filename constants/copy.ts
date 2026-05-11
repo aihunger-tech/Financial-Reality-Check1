@@ -1,4 +1,4 @@
-import { TierContent, FinancialGoal, FinancialData } from "@/types";
+import { TierContent, FinancialGoal, FinancialData, FormStep, MultiStep } from "@/types";
 
 export const FINANCIAL_GOALS: { label: string; value: FinancialGoal }[] = [
   { label: "Retire Early (FIRE)", value: 'RETIRE_EARLY' },
@@ -63,22 +63,19 @@ export const TIER_DATA: Record<string, TierContent> = {
   },
 };
 
-interface FormStep {
-  id: keyof FinancialData;
-  label: string;
-  type: "text" | "number" | "email" | "goal";
-  optional: boolean;
-}
-
-export const FORM_STEPS: FormStep[] = [
-  { id: "firstName", label: "First Name", type: "text", optional: true },
-  { id: "lastName", label: "Last Name", type: "text", optional: true },
+export const FORM_STEPS: (FormStep | MultiStep)[] = [
+  { id: "name", label: "Who are you?", type: "multi", fields: [
+    { id: "firstName", label: "First Name", type: "text", optional: false },
+    { id: "lastName", label: "Last Name", type: "text", optional: true },
+  ]},
   { id: "email", label: "Email Address", type: "email", optional: false },
   { id: "country", label: "Your Country", type: "text", optional: false },
   { id: "age", label: "How old are you?", type: "number", optional: false },
-  { id: "income", label: "Monthly Income", type: "number", optional: false },
-  { id: "savings", label: "Monthly Savings", type: "number", optional: false },
-  { id: "spending", label: "Monthly Spending", type: "number", optional: false },
-  { id: "debt", label: "Total Debt", type: "number", optional: false },
+  { id: "finances", label: "Your Financials", type: "multi", fields: [
+    { id: "income", label: "Monthly Income", type: "number", optional: false },
+    { id: "spending", label: "Monthly Spending", type: "number", optional: false },
+    { id: "savings", label: "Total Savings", type: "number", optional: false },
+    { id: "debt", label: "Total Debt", type: "number", optional: false },
+  ]},
   { id: "goal", label: "Your Main Financial Goal", type: "goal", optional: false },
 ];

@@ -21,6 +21,20 @@ export interface FinancialData {
   riskTolerance?: string;
 }
 
+export interface FormStep {
+  id: keyof FinancialData | string;
+  label: string;
+  type: "text" | "number" | "email" | "goal";
+  optional: boolean;
+}
+
+export interface MultiStep {
+  id: string;
+  label: string;
+  type: "multi";
+  fields: FormStep[];
+}
+
 export interface TierContent {
   title: string;
   primary: string;
