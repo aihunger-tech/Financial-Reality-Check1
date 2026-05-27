@@ -17,14 +17,17 @@ import CurrencySelector from "@/components/CurrencySelector";
 // --- INTERNAL IMPORTS ---
 import { useFinancialData } from "@/hooks/useFinancialData";
 import { calculateFinancialReality } from "@/lib/scoring";
+import { generateBlueprintLink, getPersonaAnchor } from "@/lib/bridge";
 import { TIER_DATA, FORM_STEPS, FINANCIAL_GOALS } from "@/constants/copy";
 import { CalculationResult, FinancialData } from "@/types";
+import BlueprintTeaser from "@/components/ui/BlueprintTeaser";
 
 // --- UI COMPONENTS ---
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { GoalOption } from "@/components/ui/GoalOptions";
+import { Toast } from "@/components/ui/Toast";
 
 // --- CONFIG ---
 const LINKS = {
@@ -35,21 +38,46 @@ const LINKS = {
 };
 
 export default function FinancialRealityCheck() {
-  const [appState, setAppState] = useState<"landing" | "currency" | "form" | "calculating" | "result">("landing");
+  const { appState, setAppState } = useFinancialStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showMarket, setShowMarket] = useState(false);
   const [humbleCount, setHumbleCount] = useState(12403);
   const [isMounted, setIsMounted] = useState(false);
+  const [loadingText, setLoadingText] = useState("Initializing analysis...");
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
   
   const { formData, updateField, currentStep, nextStep, prevStep, error, progress } = useFinancialData();
   const { currency } = useFinancialStore(); 
   const [finalResult, setFinalResult] = useState<CalculationResult | null>(null);
-
+  
   useEffect(() => {
     setIsMounted(true);
     const interval = setInterval(() => setHumbleCount(prev => prev + Math.floor(Math.random() * 3)), 3000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (appState !== "calculating") return;
+    const messages = [
+      "Analyzing income streams...",
+      "Comparing against global benchmarks...",
+      "Calculating freedom trajectory...",
+      "Identifying critical weaknesses...",
+      "Finalizing your financial persona...",
+    ];
+    let i = 0;
+    const interval = setInterval(() => {
+      setLoadingText(messages[i % messages.length]);
+      i++;
+    }, 600);
+    return () => clearInterval(interval);
+  }, [appState]);
+
+  useEffect(() => {
+    if (appState === "result" && !finalResult) {
+      setAppState("landing");
+    }
+  }, [appState, finalResult, setAppState]);
 
   const handleStart = () => setAppState("currency");
   const handleCurrencyNext = () => setAppState("form");
@@ -67,18 +95,37 @@ export default function FinancialRealityCheck() {
   const handleComplete = async () => {
     setIsSubmitting(true);
     const result = calculateFinancialReality(formData);
+    
+    setAppState("calculating");
+    setIsSubmitting(false);
+
     try {
-      await fetch('/api/save-result', {
+      const analysisRes = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userData: formData, result: result }),
       });
-    } catch (e) { console.error(e); }
-    
-    setAppState("calculating");
-    setIsSubmitting(false);
+      
+      const aiData = await analysisRes.json();
+      
+      try {
+        await fetch('/api/save-result', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userData: formData, result: { ...result, ai: aiData } }),
+        });
+      } catch (saveErr) {
+        console.warn("Save failed, continuing anyway", saveErr);
+      }
+
+      setFinalResult({ ...result, ai: aiData });
+    } catch (e) { 
+      console.error(e); 
+      setFinalResult(result);
+      setToast({ message: "AI analysis unavailable, showing base results.", type: "info" });
+    }
+
     await new Promise(r => setTimeout(r, 2000));
-    setFinalResult(result);
     setAppState("result");
     if (result.tier === "RICH") confetti({ particleCount: 200, spread: 100, origin: { y: 0.6 } });
   };
@@ -197,16 +244,41 @@ export default function FinancialRealityCheck() {
 
   if (appState === "calculating") {
     return (
-      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6 text-center">
-        <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} className="mb-8"><Loader2 size={64} /></motion.div>
-        <h2 className="text-4xl font-black mb-2 uppercase tracking-tighter">Calculating Reality...</h2>
-        <p className="text-gray-500 font-medium italic">Analyzing your data against global benchmarks</p>
+      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6 text-center relative overflow-hidden">
+        <div className="absolute inset-0 z-0 opacity-20" style={{ backgroundImage: `radial-gradient(#333 1px, transparent 1px)`, backgroundSize: '30px 30px' }} />
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0 }} 
+          animate={{ scale: 1, opacity: 1 }} 
+          className="z-10 flex flex-col items-center"
+        >
+          <motion.div 
+            animate={{ rotate: 360 }} 
+            transition={{ repeat: Infinity, duration: 2, ease: "linear" }} 
+            className="mb-8 p-4 rounded-full border-4 border-t-blue-500 border-gray-800"
+          >
+            <Loader2 size={48} className="text-blue-500" />
+          </motion.div>
+          <h2 className="text-4xl font-black mb-2 uppercase tracking-tighter">Analyzing Reality...</h2>
+          <div className="h-6 text-gray-500 font-mono text-sm italic mt-4">
+            <AnimatePresence mode="wait">
+              <motion.p 
+                key={loadingText} 
+                initial={{ opacity: 0, y: 10 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                exit={{ opacity: 0, y: -10 }}
+              >
+                {loadingText}
+              </motion.p>
+            </AnimatePresence>
+          </div>
+        </motion.div>
       </div>
     );
   }
 
   if (appState === "result" && finalResult) {
     const content = TIER_DATA[finalResult.tier];
+    
     return (
       <div className="min-h-screen bg-black text-white p-6 overflow-y-auto relative">
         <div className="absolute inset-0 z-0 opacity-20" style={{ backgroundImage: `radial-gradient(#333 1px, transparent 1px)`, backgroundSize: '30px 30px' }} />
@@ -220,14 +292,14 @@ export default function FinancialRealityCheck() {
           >
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-50" />
             
-            <h3 className={`text-sm font-black uppercase tracking-[0.3em] mb-4 ${content.color}`}>THE VERDICT</h3>
+            <h3 className={`text-sm font-black uppercase tracking-[0.3em] mb-4 ${content.color}`}>PHASE 1: SURFACE-LEVEL AUDIT</h3>
             <h1 className="text-5xl md:text-7xl font-black mb-2 leading-none tracking-tighter">{content.title}</h1>
             
             <div className="mb-8">
               <p className="text-gray-400 text-xs uppercase font-bold tracking-widest mb-1">Your Financial Identity</p>
               <p className="text-2xl font-black text-white italic">"{finalResult.persona}"</p>
             </div>
-
+            
             <div className="relative w-32 h-32 mx-auto mb-8">
               <svg className="w-full h-full" viewBox="0 0 36 36">
                 <path className="stroke-gray-800" strokeWidth="3" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831" />
@@ -235,21 +307,21 @@ export default function FinancialRealityCheck() {
               </svg>
               <div className="absolute inset-0 flex items-center justify-center text-4xl font-black">{finalResult.score}</div>
             </div>
-
+            
             <p className="text-xl font-bold mb-6 px-4 leading-relaxed">{content.primary}</p>
             
             <div className="bg-black/60 p-6 rounded-2xl mb-8 border border-white/10 w-full text-left">
               <div className="flex items-center gap-2 text-red-400 mb-2">
                 <AlertCircle size={18} />
-                <span className="text-xs font-bold uppercase tracking-wider">Critical Diagnosis</span>
+                <span className="text-xs font-bold uppercase tracking-wider">AI Clinical Diagnosis</span>
               </div>
-              <p className="text-gray-200 font-medium">{finalResult.diagnosis}</p>
+              <p className="text-gray-200 font-medium italic">"{finalResult.ai?.roast || finalResult.diagnosis}"</p>
               <div className="mt-4 pt-4 border-t border-white/5 flex justify-between items-center">
                 <span className="text-gray-500 text-xs uppercase font-bold">Primary Weakness:</span>
                 <span className="text-white text-sm font-bold">{finalResult.weakness}</span>
               </div>
             </div>
-
+            
             {finalResult.gap > 0 && (
               <div className="bg-blue-500/10 p-4 rounded-2xl mb-8 border border-blue-500/20 w-full flex items-center justify-center gap-3">
                 <Target size={20} className="text-blue-400" />
@@ -260,13 +332,15 @@ export default function FinancialRealityCheck() {
             )}
           </motion.div>
 
+          <BlueprintTeaser tier={finalResult.tier} score={finalResult.score} />
+
           <div className="grid grid-cols-2 gap-4 mt-8">
             <StatCard label="Percentile" value={`Top ${finalResult.percentile}%`} />
             <StatCard label="Country Rank" value={`Top ${finalResult.countryRank}%`} />
             <StatCard label="Freedom Path" value={`${finalResult.freedomYears} Years`} />
             <StatCard label="Verdict" value={finalResult.tier} />
           </div>
-
+          
           <div className="mt-12 p-8 bg-gradient-to-br from-gray-900 to-black border-2 border-white/20 rounded-3xl text-center">
              <p className="text-gray-500 uppercase text-xs font-bold mb-4 tracking-widest">Certificate of Reality</p>
              <h2 className="text-3xl font-black mb-2">I am in the top {finalResult.percentile}% of financial strength.</h2>
@@ -274,75 +348,85 @@ export default function FinancialRealityCheck() {
              <Button onClick={shareResult} className="py-4 rounded-full flex items-center gap-2 mx-auto w-auto px-8">
                <Share2 size={18} /> Share My Result
              </Button>
-          </div>
+           </div>
+           
+           <div className="mt-20">
+             <h4 className="text-center text-3xl font-black mb-10 tracking-tight">The Recovery Plan</h4>
+             <div className="space-y-6">
+               {finalResult.ai?.roadmap?.map((step: string, i: number) => {
+                 const isLocked = i >= 2;
+                 return (
+                   <div key={i} className={`p-6 rounded-3xl bg-gray-900 border transition-colors relative overflow-hidden ${isLocked ? 'border-white/5 opacity-60' : 'border-white/10 group hover:border-blue-500/50'}`}>
+                     <div className="flex items-start gap-4">
+                       <div className={`flex-shrink-0 w-8 h-8 rounded-full text-black font-black flex items-center justify-center text-sm ${isLocked ? 'bg-gray-700' : 'bg-blue-500'}`}>
+                         {i + 1}
+                       </div>
+                       <p className={`font-medium leading-relaxed ${isLocked ? 'text-gray-500 blur-sm select-none' : 'text-gray-200'}`}>{step}</p>
+                     </div>
+                     {isLocked && (
+                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                         <div className="bg-black/40 backdrop-blur-sm px-3 py-1 rounded-full border border-white/10 text-[10px] font-bold uppercase tracking-widest text-white">
+                           Locked
+                         </div>
+                       </div>
+                     )}
+                   </div>
+                 );
+               }) || (
+                 <p className="text-center text-gray-500">Calculating your bespoke roadmap...</p>
+               )}
 
-          <div className="mt-20">
-            <h4 className="text-center text-3xl font-black mb-10 tracking-tight">The Recovery Plan</h4>
-            <div className="space-y-6">
-              <MonetizationCard 
-                icon={<Wallet className="text-white" />} 
-                title="Control Your Finances" 
-                desc={`Because of your ${finalResult.weakness.toLowerCase()}, you need a strict fortress. Privacy-first wealth tracking for the elite.`}
-                primaryLink={LINKS.APP}
-                primaryLabel="Fix My Budget Now"
-                isHighlighted={true}
-                result={finalResult} // Passing the result for dynamic linking
-              />
-              <MonetizationCard 
-                icon={<TrendingUp className="text-emerald-400" />} 
-                title="Start Investing Smart" 
-                desc="Shift from saving to multiplying. Use real-time market data to bridge your gap."
-                primaryLink={LINKS.MARKETS}
-                primaryLabel="Enter Market Hub"
-                onSecondaryClick={() => setShowMarket(true)}
-                secondaryLabel="Market Pulse"
-                result={finalResult}
-              />
-              <MonetizationCard 
-                icon={<ShieldCheck className="text-purple-400" />} 
-                title="The Wealth Blueprint" 
-                desc="Advanced strategies to move you from your current tier to the RICH tier."
-                primaryLink={LINKS.COURSE}
-                primaryLabel="Get Blueprints"
-                result={finalResult}
-              />
-            </div>
-          </div>
+               <div className="py-4 text-center">
+                 <p className="text-gray-500 text-xs font-bold uppercase mb-4 tracking-widest">Full Strategic Roadmap Locked</p>
+                 <Button
+                   onClick={() => {
+                     const personalizedLink = generateBlueprintLink(LINKS.COURSE, formData, finalResult!);
+                     const anchor = getPersonaAnchor(finalResult!.tier, finalResult!.persona);
+                     window.open(`${personalizedLink}${anchor}`, '_blank');
+                   }}
+                   className="w-full py-6 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-lg shadow-lg shadow-blue-500/20 transition-all hover:scale-[1.02]"
+                 >
+                   Unlock Full Recovery Plan <Zap size={20} />
+                 </Button>
+               </div>
+
+               <MonetizationCard
+                 icon={<ShieldCheck className="text-purple-400" />}
+                 title="The Wealth Blueprint"
+                 desc="Now that you have your first two launches, get the full strategic engine to reach the RICH tier."
+                 primaryLink={LINKS.COURSE}
+                 primaryLabel="Unlock Full Blueprint"
+                 result={finalResult}
+                 userData={formData}
+                 isHighlighted={true}
+               />
+             </div>
+           </div>
         </div>
-
+        {showMarket ? (
+          <MarketModal onClose={() => setShowMarket(false)} />
+        ) : null}
         <AnimatePresence>
-          {showMarket && <MarketModal onClose={() => setShowMarket(false)} />}
+          {toast ? <Toast message={toast.message} type={toast.type} /> : null}
         </AnimatePresence>
       </div>
     );
   }
-
   return null;
 }
 
 function StatCard({ label, value }: { label: string, value: string }) {
   return (
-    <div className="bg-gray-900 p-6 rounded-3 own-3 border border-white/5">
+    <div className="bg-gray-900 p-6 rounded-3xl border border-white/5">
       <p className="text-gray-500 text-xs uppercase font-bold mb-1">{label}</p>
       <p className="text-2xl font-black">{value}</p>
     </div>
   );
 }
 
-function MonetizationCard({ icon, title, desc, primaryLink, primaryLabel, secondaryLabel, onSecondaryClick, isHighlighted, result }: any) {
-  
-  // PERSONALIZATION BRIDGE: Generates the dynamic link
-  const generatePersonalizedLink = (url: string) => {
-    if (!result) return url;
-    const params = new URLSearchParams({
-      persona: result.persona,
-      tier: result.tier,
-      weakness: result.weakness,
-      score: result.score.toString(),
-      gap: result.gap.toString(),
-    });
-    return `${url}${url.includes('?') ? '&' : '?'} ${params.toString()}`;
-  };
+function MonetizationCard({ icon, title, desc, primaryLink, primaryLabel, secondaryLabel, onSecondaryClick, isHighlighted, result, userData }: any) {
+  const personalizedLink = result && userData ? generateBlueprintLink(primaryLink, userData, result) : primaryLink;
+  const anchor = result ? getPersonaAnchor(result.tier, result.persona) : '';
 
   return (
     <div className={`p-6 rounded-3xl group transition-all ${isHighlighted ? 'bg-white text-black border-white shadow-[0_0_30px_rgba(255,255,255,0.2)]' : 'bg-gray-900 border border-white/5 hover:border-white/20'}`}>
@@ -356,9 +440,9 @@ function MonetizationCard({ icon, title, desc, primaryLink, primaryLabel, second
         </div>
       </div>
       <div className="flex gap-3">
-        <a 
-          href={generatePersonalizedLink(primaryLink)} 
-          target="_blank" 
+        <a
+          href={`${personalizedLink}${anchor}`}
+          target="_blank"
           className={`flex-1 py-3 font-bold rounded-xl text-center text-sm flex items-center justify-center gap-2 transition-colors ${isHighlighted ? 'bg-black text-white hover:bg-zinc-800' : 'bg-white text-black hover:bg-gray-200'}`}
         >
           {primaryLabel} <ExternalLink size={14} />

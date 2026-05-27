@@ -1,39 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { FinancialData, FinancialGoal } from "@/types";
+import { FinancialData } from "@/types";
+import { useFinancialStore } from "@/store/useFinancialStore";
 
 export const useFinancialData = () => {
-  // 1. Initial State
-  const [formData, setFormData] = useState<FinancialData>({
-    firstName: "",
-    lastName: "",
-    email: "",
-    country: "",
-    age: 0,
-    income: 0,
-    savings: 0,
-    spending: 0,
-    debt: 0,
-    goal: 'JUST_SURVIVE', // Default goal
-  });
-
+  const { formData, updateFormData, currency } = useFinancialStore();
   const [currentStep, setCurrentStep] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 2. Update Logic
   const updateField = <K extends keyof FinancialData>(key: K, value: FinancialData[K]) => {
-    setFormData((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-    setError(null); // Clear error when user types
+    updateFormData(key as string, value);
+    setError(null);
   };
 
-  // 3. Navigation Logic
   const nextStep = () => {
-    // Validation for Mandatory Fields
     if (currentStep === 0 && !formData.firstName) {
       setError("Please enter your first name to continue.");
       return;
@@ -43,7 +25,7 @@ export const useFinancialData = () => {
       return;
     }
 
-    if (currentStep < 9) { // Total of 10 steps (0-9)
+    if (currentStep < 9) {
       setCurrentStep((prev) => prev + 1);
     } else {
       setIsComplete(true);
@@ -56,7 +38,6 @@ export const useFinancialData = () => {
     }
   };
 
-  // 4. Progress Calculation
   const progress = ((currentStep + 1) / 10) * 100;
 
   return {

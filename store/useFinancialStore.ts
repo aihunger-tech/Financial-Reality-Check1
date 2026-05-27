@@ -1,9 +1,14 @@
 // store/useFinancialStore.ts
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { FinancialData } from '@/types';
 
 interface FinancialState {
-  // Currency State
+  // --- APP STATE ---
+  appState: "landing" | "currency" | "form" | "calculating" | "result";
+  setAppState: (state: "landing" | "currency" | "form" | "calculating" | "result") => void;
+
+  // --- CURRENCY STATE ---
   currency: {
     code: string;
     symbol: string;
@@ -11,20 +16,13 @@ interface FinancialState {
   };
   setCurrency: (currency: { code: string; symbol: string; locale: string }) => void;
 
-  // User Financial Data
-  formData: {
-    monthlyIncome: number;
-    monthlyExpenses: number;
-    totalDebt: number;
-    savings: number;
-    investmentKnowledge: string; // 'Beginner', 'Intermediate', 'Advanced'
-    riskTolerance: string;      // 'Low', 'Medium', 'High'
-    financialGoal: string;
-  };
+  // --- USER FINANCIAL DATA ---
+  formData: FinancialData;
   updateFormData: (field: string, value: any) => void;
   resetStore: () => void;
 
-  // Result State
+
+  // --- RESULT STATE ---
   verdict: string | null;
   score: number;
   setVerdict: (verdict: string) => void;
@@ -32,13 +30,16 @@ interface FinancialState {
 }
 
 const initialFormData = {
-  monthlyIncome: 0,
-  monthlyExpenses: 0,
-  totalDebt: 0,
+  firstName: "",
+  lastName: "",
+  email: "",
+  country: "",
+  age: 0,
+  income: 0,
   savings: 0,
-  investmentKnowledge: 'Beginner',
-  riskTolerance: 'Medium',
-  financialGoal: '',
+  spending: 0,
+  debt: 0,
+  goal: 'JUST_SURVIVE' as any,
 };
 
 const defaultCurrency = {
@@ -50,6 +51,9 @@ const defaultCurrency = {
 export const useFinancialStore = create<FinancialState>()(
   persist(
     (set) => ({
+      appState: "landing",
+      setAppState: (appState) => set({ appState }),
+
       currency: defaultCurrency,
       setCurrency: (currency) => set({ currency }),
       
@@ -65,13 +69,14 @@ export const useFinancialStore = create<FinancialState>()(
       setScore: (score) => set({ score }),
 
       resetStore: () => set({ 
+        appState: "landing",
         formData: initialFormData, 
         verdict: null, 
         score: 0 
       }),
     }),
     {
-      name: 'financial-reality-storage', // This saves data in localStorage for sub-app access
+      name: 'financial-reality-storage',
     }
   )
 );

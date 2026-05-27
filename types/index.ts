@@ -57,4 +57,8 @@ export interface CalculationResult {
   freedomYears: number;
   percentile: number;
   countryRank: number; 
+  ai?: {
+    roast: string;
+    roadmap: string[];
+  };
 }
