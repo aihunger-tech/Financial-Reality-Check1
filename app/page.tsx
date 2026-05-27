@@ -33,7 +33,7 @@ import { Toast } from "@/components/ui/Toast";
 const LINKS = {
   APP: "https://cyfinances.vercel.app/welcome", 
   MARKETS: "#", 
-  COURSE: "https://your-course.com",
+  COURSE: "https://blueprint-lp.vercel.app",
   CONSULT: "https://calendly.com/your-link",
 };
 
